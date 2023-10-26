@@ -35,7 +35,8 @@ def compute_density_field(particles, grid_res=32):
     density = np.zeros((grid_res, grid_res, grid_res))
     
     cell_particle_map = {}
-
+    
+    # Created map to compute computations, created a map of "relevant particles" so the distance is not computed for particles far off
     for p in particles:
         particle_min = p - 0.5
         particle_max = p + 0.5
