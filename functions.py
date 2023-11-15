@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.fft import fftn, ifftn
 
+# TODO: PART 2
 def distribute_particles(center, a, ba, ca, num_particles=32**3):
 
     sigma = np.diag([a**2, (ba * a)**2, (ca * a)**2])
@@ -24,7 +27,7 @@ ax.set_zlabel('Z')
 
 plt.show()
 
-particles = np.column_stack(x,y,z]
+particles = np.column_stack([x,y,z])
 
 def compute_density_field(particles, grid_res=32):
 
@@ -73,3 +76,86 @@ def compute_density_field(particles, grid_res=32):
 
 density_field = compute_density_field(particles)
 
+# TODO: PART 3
+def solve_poisson_fft(density_field):
+    N = density_field.shape[0]
+    k = np.fft.fftfreq(N) * 2 * np.pi
+    kx, ky, kz = np.meshgrid(k, k, k, indexing='ij')
+    
+    rho_hat = np.fft.fftn(density_field)
+
+    denominator = np.where(kx**2 + ky**2 + kz**2 == 0, 1, kx**2 + ky**2 + kz**2)
+    phi_hat = (4 * np.pi * rho_hat) / denominator
+
+    # Inverse Fourier transform to get the potential
+    phi = np.fft.ifftn(phi_hat).real
+
+    return phi
+
+def delta_source(N): 
+    delta_source = np.zeros((N, N, N))
+    delta_source[N//2, N//2, N//2] = 1
+    return delta_source 
+
+point_source = delta_source(32)
+phi_point_source = solve_poisson_fft(point_source)
+
+# Plotting
+def plot_potential(phi):
+    N = phi.shape[0]
+    x, y, z = np.indices((N, N, N))
+
+    fig = plt.figure(figsize=(10, 8))  
+    ax = fig.add_subplot(111, projection='3d')
+
+    x = x.flatten()
+    y = y.flatten()
+    z = z.flatten()
+    phi = phi.flatten()
+
+    # Normalizing potential values for color mapping and transparency
+    phi_norm = (phi - phi.min()) / (phi.max() - phi.min())
+    cmap = plt.cm.viridis
+    # Points with phi_norm <= 0.1 are almost invisible
+    alpha = np.where(phi_norm > 0.05, 1, 0)  
+
+    sc = ax.scatter(x, y, z, c=phi_norm, cmap=cmap, alpha=alpha, marker='o', s=10)
+
+    # Colorbar
+    plt.colorbar(sc)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    plt.show()
+    return 
+
+plot_potential(phi_point_source)
+
+def green_function(N):
+    x = np.linspace(-N/2, N/2, N, endpoint=False)
+    y = np.linspace(-N/2, N/2, N, endpoint=False)
+    z = np.linspace(-N/2, N/2, N, endpoint=False)
+    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+
+    r = np.sqrt(X**2 + Y**2 + Z**2)
+    g = np.where((np.abs(X) < 1) & (np.abs(Y) < 1) & (np.abs(Z) < 1), 1/r, 0)
+    g[N//2, N//2, N//2] = 1  
+
+    return g
+
+def solve_poisson_green(density, g):
+    density_hat = fftn(density)
+    g_hat = fftn(g)
+
+    phi_hat = density_hat * g_hat
+
+    phi = ifftn(phi_hat).real
+    return phi
+
+N = 64
+point_source = delta_source(64)
+g = green_function(64)
+phi = solve_poisson_green(point_source, g)
+plot_potential(phi)
