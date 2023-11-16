@@ -1,11 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import colors
 from scipy.fft import fftn, ifftn
+from mpl_toolkits.mplot3d import Axes3D
 
-# TODO: PART 2
+# PARTICLE DISTRIBUTION
 def distribute_particles(center, a, ba, ca, num_particles=32**3):
+    '''
+        The function returns a 3D multivariate Gaussian distribution of particles of a given number. 
 
+        Parameters:
+        center: center of the distribution
+        a: semi-major axis
+        ba: axis ratio b/a
+        ca: axis ratio c/a
+        num_particles: number of particles in the distribution 
+
+        Returns:
+        A 3D multivariate Gaussian distribution of particles of a given number
+    '''
     sigma = np.diag([a**2, (ba * a)**2, (ca * a)**2])
     coords = np.random.multivariate_normal(center, sigma, num_particles)
     
@@ -24,12 +37,24 @@ ax.scatter(x, y, z, s=1, c='b', marker='o')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
+ax.set_title('3D Particle Distribution')
 
 plt.show()
 
+# COMPUTING DENSITY FIELD
 particles = np.column_stack([x,y,z])
 
 def compute_density_field(particles, grid_res=32):
+    '''
+        The function returns the density field of the particles.
+
+        Parameters:
+        particles: the particles
+        grid_res: the resolution of the grid
+
+        Returns:
+        The density field of the particles.
+    '''
 
     min_coords = particles.min(axis=0) - 0.5  
     max_coords = particles.max(axis=0) + 0.5
@@ -76,8 +101,38 @@ def compute_density_field(particles, grid_res=32):
 
 density_field = compute_density_field(particles)
 
-# TODO: PART 3
+#plotting the density field
+x, y, z = np.meshgrid(np.arange(density_field.shape[0]), np.arange(density_field.shape[1]), np.arange(density_field.shape[2]))
+
+print(x.shape, y.shape, z.shape)
+
+x = x.flatten()
+y = y.flatten()
+z = z.flatten()
+
+density_values = density_field.flatten()
+
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_subplot(111, projection='3d')
+sc = ax.scatter(x, y, z, c=density_values, cmap='viridis', vmin=15, vmax=25, alpha = 0.1)
+plt.colorbar(sc, label='Density')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.title('3D Density Plot')
+plt.show()
+
+# SOLVING THE POISSON EQUATION
 def solve_poisson_fft(density_field):
+    '''
+        The function returns the potential of the density field by solving the Poisson equation using the FFT.
+
+        Parameters:
+        density_field: the density field
+
+        Returns:
+        The potential of the density field. 
+    '''
     N = density_field.shape[0]
     k = np.fft.fftfreq(N) * 2 * np.pi
     kx, ky, kz = np.meshgrid(k, k, k, indexing='ij')
@@ -93,15 +148,30 @@ def solve_poisson_fft(density_field):
     return phi
 
 def delta_source(N): 
+    '''
+        The function returns a delta source at the center of the grid.
+
+        Parameters:
+        N: the number of grid points
+
+        Returns:
+        A delta source at the center of the grid.
+    '''
     delta_source = np.zeros((N, N, N))
     delta_source[N//2, N//2, N//2] = 1
     return delta_source 
 
-point_source = delta_source(32)
-phi_point_source = solve_poisson_fft(point_source)
+def plot_potential(phi, title):
+    '''
+        The function plots the potential for a given potential.
 
-# Plotting
-def plot_potential(phi):
+        Parameters:
+        phi: the potential
+        title: the title of the plot
+
+        Returns:
+        A plot of the potential in the form of a 3D scatter plot.
+    '''
     N = phi.shape[0]
     x, y, z = np.indices((N, N, N))
 
@@ -121,19 +191,31 @@ def plot_potential(phi):
 
     sc = ax.scatter(x, y, z, c=phi_norm, cmap=cmap, alpha=alpha, marker='o', s=10)
 
-    # Colorbar
     plt.colorbar(sc)
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    ax.set_title(title)
 
     plt.show()
     return 
 
-plot_potential(phi_point_source)
+#solving the Poisson equation for a delta source
+point_source = delta_source(32)
+phi_point_source = solve_poisson_fft(point_source)
+plot_potential(phi_point_source, 'Potential for a Delta Source')
 
 def green_function(N):
+    '''
+        The function returns the Green's function.
+
+        Parameters:
+        N: the number of grid points
+
+        Returns:
+        The Green's function.
+    '''
     x = np.linspace(-N/2, N/2, N, endpoint=False)
     y = np.linspace(-N/2, N/2, N, endpoint=False)
     z = np.linspace(-N/2, N/2, N, endpoint=False)
@@ -146,6 +228,16 @@ def green_function(N):
     return g
 
 def solve_poisson_green(density, g):
+    '''
+        The function returns the potential of the density field by solving the Poisson equation using the Green's function.
+
+        Parameters:
+        density: the density field
+        g: the Green's function
+
+        Returns:
+        The potential of the density field. 
+    '''
     density_hat = fftn(density)
     g_hat = fftn(g)
 
@@ -158,4 +250,4 @@ N = 64
 point_source = delta_source(64)
 g = green_function(64)
 phi = solve_poisson_green(point_source, g)
-plot_potential(phi)
+plot_potential(phi, 'Potential for a Delta Source using Green Function') 
