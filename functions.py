@@ -148,15 +148,17 @@ def solve_poisson_fft(density_field):
         The potential of the density field. 
     '''
     N = density_field.shape[0]
-    k = np.fft.fftfreq(N) * 2 * np.pi
-    kx, ky, kz = np.meshgrid(k, k, k, indexing='ij')
+    m = np.fft.fftfreq(N) * N
+    kx, ky, kz = np.meshgrid(2*np.pi*m,2*np.pi*m,2*np.pi*m, indexing='ij')
     
     rho_hat = np.fft.fftn(density_field)
 
-    denominator = np.where(kx**2 + ky**2 + kz**2 == 0, 1, kx**2 + ky**2 + kz**2)
-    phi_hat = (4 * np.pi * rho_hat) / denominator
+    #avoid division by zero
+    denominator = np.where(np.cos(2*np.pi*m/ N)-1 == 0, 1, (np.cos(2*np.pi*m/N)-1)*(kx**2+ky**2+kz**2))
 
-    # Inverse Fourier transform to get the potential
+    phi_hat = 4*np.pi*rho_hat/denominator
+
+    #inverse Fourier transform to get the potential
     phi = np.fft.ifftn(phi_hat).real
 
     return phi
@@ -175,17 +177,27 @@ def delta_source(N):
     delta_source[N//2, N//2, N//2] = 1
     return delta_source 
 
-def plot_potential(phi, title):
-    '''
-        The function plots the potential for a given potential.
+def plot_slices_2d(potential, N):
+    """
+    Plot 2D slices of the potential along the y-axis.
 
-        Parameters:
-        phi: the potential
-        title: the title of the plot
+    Parameters:
+    potential: 3D potential array
+    N: Size of the potential array
 
-        Returns:
-        A plot of the potential in the form of a 3D scatter plot.
-    '''
+    Returns:
+    None (plots the 2D slices)
+    """
+    fig, axs = plt.subplots(1, N, figsize=(15, 5), sharey=True)
+    for i in range(N):
+        axs[i].imshow(potential[:, i, :], extent=(0, 1, 0, 1), origin='lower')  # Hard-coded L = 1.0
+        axs[i].set_title(f'Potential at y = {i}')
+
+    fig.suptitle('2D Slices of Potential from a Point Source')
+    plt.xlabel('x')
+    plt.ylabel('z')
+    plt.show()
+
 def plot_potential_vs_radius(phi):
     N = phi.shape[0]
     center = N // 2
@@ -212,7 +224,7 @@ def plot_potential_vs_radius(phi):
 #solving the Poisson equation for a delta source
 point_source = delta_source(32)
 phi_point_source = solve_poisson_fft(point_source)
-plot_potential_vs_radius(phi_point_source)
+plot_slices_2d(phi_point_source,5)
 
 def green_function(N):
     '''
@@ -224,7 +236,8 @@ def green_function(N):
         Returns:
         The Green's function.
     '''
-    x = np.linspace(-N/2, N/2, N, endpoint=False)
+    
+    x = np.linspace(-N/2, N/2, N, endpoint=True)
     y = np.linspace(-N/2, N/2, N, endpoint=False)
     z = np.linspace(-N/2, N/2, N, endpoint=False)
     X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
@@ -254,8 +267,8 @@ def solve_poisson_green(density, g):
     phi = ifftn(phi_hat).real
     return phi
 
-N = 64
+N = 32
 point_source = delta_source(N)
 g = green_function(N)
 phi = solve_poisson_green(point_source, g)
-plot_potential_vs_radius(phi)
+plot_slices_2d(phi,5)
