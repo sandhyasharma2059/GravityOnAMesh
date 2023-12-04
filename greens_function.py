@@ -22,21 +22,21 @@ def green_function(N):
     greens_function[0,0,0] = 1 
     return greens_function
 
-def solve_poisson_green(density, greens_function):
+def solve_poisson_green(density, g):
     '''
-        The function returns the potential of the density field by solving the Poisson equation using the Green's function.
+    The function returns the potential of the density field by solving the Poisson equation using the Green's function.
 
-        Parameters:
-            - density: the density field (32x32x32 array)
-            - greens_function: the Green's function (32x32x32 array)
+    Parameters:
+    density: the density field
+    g: the Green's function
 
-        Returns:
-            - phi: the potential of the density field (32x32x32 array)
+    Returns:
+    The potential of the density field. 
     '''
-    density_hat = np.fftn(density)
-    g_hat = np.fftn(greens_function)
+    density_hat = fftn(np.fft.ifftshift(density))
+    g_hat = fftn(np.fft.ifftshift(g))
 
     phi_hat = density_hat * g_hat
 
-    phi = np.ifftn(phi_hat).real
+    phi = np.fft.fftshift(ifftn(phi_hat).real)
     return phi
