@@ -32,7 +32,7 @@ def gaussian_particles(center, a, ba, ca, num_particles=32**3):
 
 
 
-def spherically_sym_particles(center, num_of_particles):
+def spherically_sym_particles(center, num_of_particles, r):
     '''
     The function returns a spherically symmetric distribution of particles of a given number. 
 
@@ -45,7 +45,7 @@ def spherically_sym_particles(center, num_of_particles):
           (A spherically symmetric distribution of particles of a given number)
     '''
 
-    r = np.random.uniform(0, 1, num_of_particles)
+    # r = np.random.uniform(0, 1, num_of_particles)
     theta = np.random.uniform(0, np.pi, num_of_particles)
     phi = np.random.uniform(0, 2*np.pi, num_of_particles)
 
