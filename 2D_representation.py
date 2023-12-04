@@ -1,25 +1,34 @@
-#PLOTTING 2D SLICE
+'''
+Name: 2D_representation.py
+Description: This file contains the function to plot a 2D slice a 3D quantity.
+Author: Greta Goldberg, Jason Li, Sandhya Sharma
+Last Modified: December 3, 2023
 
-def plot_2d_slice(phi, name, axis='z', slice_index=None):
+'''
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_2d_slice(quantity, name, axis='z', slice_index=None):
     """
-    Plot a 2D slice of the 3D quantity.
+    Plot a 2D slice of a 3D quantity (example: density field, potential field, etc.)
     
     Parameters:
-    - phi: 3D numpy array of quantity values.
+    - quantity: 3D numpy array of quantity values.
     - axis: The axis to take the slice along ('x', 'y', or 'z').
     - slice_index: The index of the slice along the chosen axis. If None, it defaults to the middle of the grid.
     """
-    N = phi.shape[0]
+    N = quantity.shape[0]
     
     if slice_index is None:
         slice_index = N // 2
     
     if axis == 'x':
-        slice_2d = phi[slice_index, :, :]
+        slice_2d = quantity[slice_index, :, :]
     elif axis == 'y':
-        slice_2d = phi[:, slice_index, :]
+        slice_2d = quantity[:, slice_index, :]
     elif axis == 'z':
-        slice_2d = phi[:, :, slice_index]
+        slice_2d = quantity[:, :, slice_index]
     else:
         raise ValueError("Invalid axis. Choose 'x', 'y', or 'z'.")
     

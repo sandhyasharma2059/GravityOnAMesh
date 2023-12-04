@@ -1,17 +1,24 @@
-# COMPUTING DENSITY FIELD
+'''
+Name: density_field.py
+Description: This file contains the function to compute the density field of the particles.
+Author: Greta Goldberg, Jason Li, Sandhya Sharma
+Last Modified: December 3, 2023
 
-particles = np.column_stack([x,y,z])
+'''
+
+import particle_distribution
+import numpy as np
 
 def compute_density_field(particles, grid_res=32):
     '''
         The function returns the density field of the particles.
 
         Parameters:
-        particles: the particles
+        particles: the particles example: particles = np.column_stack([x,y,z])
         grid_res: the resolution of the grid
 
         Returns:
-        The density field of the particles.
+        The density field of the particles (32x32x32 array)
     '''
 
     min_coords = particles.min(axis=0) - 0.5  

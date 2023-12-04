@@ -1,14 +1,26 @@
-# SOLVING THE POISSON EQUATION
+'''
+Name: solve_poisson_equation.py
+Description: This file contains the function to solve the Poisson equation.
+Author: Greta Goldberg, Jason Li, Sandhya Sharma
+Last Modified: December 3, 2023
+
+'''
+
+import numpy as np
+
 def solve_poisson_fft(density_field):
+
     '''
-        The function returns the potential of the density field by solving the Poisson equation using the FFT.
+        The function returns the potential of the density field by solving the Poisson 
+        equation using the FFT.
 
         Parameters:
-        density_field: the density field
+            - density_field: the density field (32x32x32 array)
 
         Returns:
-        The potential of the density field. 
+            - phi: the potential of the density field (32x32x32 array)
     '''
+
     N = density_field.shape[0]
     m = np.fft.fftfreq(N) * N
     kx, ky, kz = np.meshgrid(2*np.pi*m,2*np.pi*m,2*np.pi*m, indexing='ij')
@@ -24,3 +36,4 @@ def solve_poisson_fft(density_field):
     phi = np.fft.ifftn(phi_hat).real
 
     return phi
+
