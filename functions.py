@@ -39,7 +39,7 @@ ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 ax.set_title('3D Particle Distribution')
 
-plt.show()
+#plt.show()
 
 # COMPUTING DENSITY FIELD
 particles = np.column_stack([x,y,z])
@@ -139,27 +139,30 @@ plot_2d_slice(density_field, 'density', 'z')
 # SOLVING THE POISSON EQUATION
 def solve_poisson_fft(density_field):
     '''
-        The function returns the potential of the density field by solving the Poisson equation using the FFT.
+    The function returns the potential of the density field by solving the Poisson equation using the FFT.
 
-        Parameters:
-        density_field: the density field
+    Parameters:
+    density_field: the density field
 
-        Returns:
-        The potential of the density field. 
+    Returns:
+    The potential of the density field. 
     '''
     N = density_field.shape[0]
-    m = np.fft.fftfreq(N) * N
-    kx, ky, kz = np.meshgrid(2*np.pi*m,2*np.pi*m,2*np.pi*m, indexing='ij')
-    
-    rho_hat = np.fft.fftn(density_field)
 
-    #avoid division by zero
-    denominator = np.where(np.cos(2*np.pi*m/ N)-1 == 0, 1, (np.cos(2*np.pi*m/N)-1)*(kx**2+ky**2+kz**2))
+    # Creating the grid and frequencies
+    kx, ky, kz = np.meshgrid(np.fft.fftfreq(N), np.fft.fftfreq(N), np.fft.fftfreq(N), indexing='ij')
 
-    phi_hat = 4*np.pi*rho_hat/denominator
+    # Avoid division by zero
+    denominator = np.where(np.cos(2*np.pi*kx) - 1 == 0, 1, (np.cos(2*np.pi*kx) - 1) * (kx**2 + ky**2 + kz**2))
 
-    #inverse Fourier transform to get the potential
-    phi = np.fft.ifftn(phi_hat).real
+    # Fourier transform of the density field
+    rho_hat = np.fft.fftn(np.fft.ifftshift(density_field))
+
+    # Solving the Poisson equation in Fourier space
+    phi_hat = 4 * np.pi * rho_hat / denominator
+
+    # Inverse Fourier transform with proper shifting
+    phi = np.fft.ifftshift(np.fft.ifftn(phi_hat).real)
 
     return phi
 
@@ -190,12 +193,16 @@ def plot_slices_2d(potential, N):
     """
     fig, axs = plt.subplots(1, N, figsize=(15, 5), sharey=True)
     for i in range(N):
-        axs[i].imshow(potential[:, i, :], extent=(0, 1, 0, 1), origin='lower')  # Hard-coded L = 1.0
+        im = axs[i].imshow(potential[:, i, :], extent=(0, 1, 0, 1), origin='lower')  # Hard-coded L = 1.0
         axs[i].set_title(f'Potential at y = {i}')
 
     fig.suptitle('2D Slices of Potential from a Point Source')
     plt.xlabel('x')
     plt.ylabel('z')
+
+    # Add colorbar
+    cbar = fig.colorbar(im, ax=axs, orientation='vertical', fraction=0.05, pad=0.1)
+
     plt.show()
 
 def plot_potential_vs_radius(phi):
@@ -214,7 +221,7 @@ def plot_potential_vs_radius(phi):
     # Plotting
     plt.figure(figsize=(8, 6))
     plt.plot(unique_r, average_phi, marker='o')
-    plt.plot(unique_r, 1 / unique_r, label='1/r', color='red')
+    #plt.plot(unique_r, 1 / unique_r, label='1/r', color='red')
     plt.xlabel('Radius (r)')
     plt.ylabel('Average Potential (phi)')
     plt.title('Average Potential vs. Radius')
@@ -237,7 +244,7 @@ def green_function(N):
         The Green's function.
     '''
     
-    x = np.linspace(-N/2, N/2, N, endpoint=True)
+    x = np.linspace(-N/2, N/2, N, endpoint=False)
     y = np.linspace(-N/2, N/2, N, endpoint=False)
     z = np.linspace(-N/2, N/2, N, endpoint=False)
     X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
@@ -248,27 +255,82 @@ def green_function(N):
     g[0,0,0] = 1 
     return g
 
+
+def green_function(N, center=(0, 0, 0)):
+    '''
+    The function returns the Green's function.
+
+    Parameters:
+    N: the number of grid points
+    center: the center of the Green's function
+
+    Returns:
+    The Green's function.
+    '''
+    x = np.linspace(-N/2, N/2, N, endpoint=True)
+    y = np.linspace(-N/2, N/2, N, endpoint=False)
+    z = np.linspace(-N/2, N/2, N, endpoint=False)
+    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+
+    r = np.sqrt((X - center[0])**2 + (Y - center[1])**2 + (Z - center[2])**2)
+    r[N//2, N//2, N//2] = 1
+    g = np.where(r <= N//2, 1/r, 0) 
+    g[0, 0, 0] = 1 
+    return g
+
 def solve_poisson_green(density, g):
     '''
-        The function returns the potential of the density field by solving the Poisson equation using the Green's function.
+    The function returns the potential of the density field by solving the Poisson equation using the Green's function.
 
-        Parameters:
-        density: the density field
-        g: the Green's function
+    Parameters:
+    density: the density field
+    g: the Green's function
 
-        Returns:
-        The potential of the density field. 
+    Returns:
+    The potential of the density field. 
     '''
-    density_hat = fftn(density)
-    g_hat = fftn(g)
+    density_hat = fftn(np.fft.ifftshift(density))
+    g_hat = fftn(np.fft.ifftshift(g))
 
     phi_hat = density_hat * g_hat
 
-    phi = ifftn(phi_hat).real
+    phi = np.fft.fftshift(ifftn(phi_hat).real)
     return phi
 
-N = 32
-point_source = delta_source(N)
+def adapt_to_isolated_system(density, N):
+    '''
+    Adapt the density field for an isolated system using only one-quarter of the available mesh points.
+
+    Parameters:
+    density: the density field
+    N: the number of grid points
+
+    Returns:
+    The adapted density field for an isolated system.
+    The centered green's function
+    '''
+    density_isolated = np.zeros_like(density)
+
+    #Use only one-quarter of the available mesh points (bottom left-hand corner)
+    density_isolated[:N//2, :N//2, :N//2] = density[:N//2, :N//2, :N//2]
+
+    g_centered = green_function(N, center=(N//4, N//4, N//4))
+
+    return density_isolated, g_centered
+
+N=32
 g = green_function(N)
-phi = solve_poisson_green(point_source, g)
-plot_slices_2d(phi,5)
+# Solve the Poisson equation for the original density field
+potential_original = solve_poisson_green(density_field, g)
+
+# Plot the original potential
+plot_slices_2d(potential_original, 5)
+
+# Adapt the density field for an isolated system
+density_isolated, g_centered = adapt_to_isolated_system(density_field, N)
+
+# Solve the Poisson equation for the isolated system
+potential_isolated = solve_poisson_green(density_isolated, g_centered)
+
+# Plot the potential for the isolated system
+plot_slices_2d(potential_isolated, 5)
