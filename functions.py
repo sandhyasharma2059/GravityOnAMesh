@@ -222,7 +222,7 @@ def plot_potential_vs_radius(phi):
     # Plotting
     plt.figure(figsize=(8, 6))
     plt.plot(unique_r, average_phi, marker='o')
-    #plt.plot(unique_r, 1 / unique_r, label='1/r', color='red')
+    # plt.plot(unique_r, 1 / unique_r, label='1/r', color='red')
     plt.xlabel('Radius (r)')
     plt.ylabel('Average Potential (phi)')
     plt.title('Average Potential vs. Radius')
@@ -238,43 +238,56 @@ plot_slices_2d(phi_point_source,5)
 
 def green_function(N):
     '''
-        The function returns the Green's function.
+    This function returns the Green's function in a 3D grid, symmetric across the eight octants.
 
-        Parameters:
-        N: the number of grid points
+    Parameters:
+    N (int): The number of grid points in each dimension.
 
-        Returns:
-        The Green's function.
+    Returns:
+    numpy.ndarray: The Green's function values in a 3D N x N x N grid.
     '''
-    
+    # Define the meshgrid
     x = np.linspace(0, N, N, endpoint=False)
     y = np.linspace(0, N, N, endpoint=False)
     z = np.linspace(0, N, N, endpoint=False)
     X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
 
+    # Calculate the distance from the origin
     r = np.sqrt(X**2 + Y**2 + Z**2)
-    g = np.where(r <= N//2, 1/r, 0) 
-    g[0,0,0] = 1 
-    return g
 
+    # Calculate the Green's function values
+    g = np.where(r != 0, 1/r, 0)
+    g[0, 0, 0] = 1  # Handle the special case at the origin
+
+    # Mirror the values to other octants to maintain symmetry
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                g[i, j, k] = g[min(i, N - 1 - i), min(j, N - 1 - j), min(k, N - 1 - k)]
+
+    return g
 
 def solve_poisson_green(density, g):
     '''
-    The function returns the potential of the density field by solving the Poisson equation using the Green's function.
+        The function returns the potential of the density field by solving the Poisson equation using the Green's function.
 
-    Parameters:
-    density: the density field
-    g: the Green's function
+        Parameters:
+        density: the density field
+        g: the Green's function
 
-    Returns:
-    The potential of the density field. 
+        Returns:
+        The potential of the density field. 
     '''
-    density_hat = fftn(np.fft.ifftshift(density))
-    g_hat = fftn(np.fft.ifftshift(g))
+    density_hat = fftn(density)
+    g_hat = fftn(g)
 
     phi_hat = density_hat * g_hat
 
-    phi = np.fft.fftshift(ifftn(phi_hat).real)
+    phi = ifftn(phi_hat).real
     return phi
 
-
+N = 64
+point_source = delta_source(N)
+g = green_function(N)
+phi = solve_poisson_green(point_source, g)
+plot_potential_vs_radius(phi)
