@@ -286,8 +286,23 @@ def solve_poisson_green(density, g):
     phi = ifftn(phi_hat).real
     return phi
 
+def delta_source_octant(N):
+    '''
+    The function returns a delta source at the center of the bottom left octant of the grid.
+
+    Parameters:
+    N (int): The number of grid points in each dimension.
+
+    Returns:
+    numpy.ndarray: A 3D grid with a delta source at the specified location.
+    '''
+    delta_source = np.zeros((N, N, N))
+    delta_source[N//4, N//4, N//4] = 100  # Place the delta source at the center of the bottom left octant
+    return delta_source
+
 N = 64
-point_source = delta_source(N)
+point_source = delta_source_octant(N)
 g = green_function(N)
 phi = solve_poisson_green(point_source, g)
-plot_potential_vs_radius(phi)
+plot_potential_vs_radius(phi[:32,:32,:32]) # Limited to the 32 by 32 by 32 cube 
+
