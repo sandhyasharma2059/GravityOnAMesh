@@ -133,9 +133,9 @@ def verlet_function(x0=None, y0=None, z0=None, vx0=None, vy0=None, vz0=None, ten
         # Update velocities at integer step with adaptive time step
         dt = min(dt, 0.1 / max_velocity)
         # Update velocities at integer step
-        vx = vx + dt * (-1)*gradient[0][x, y, z]
-        vy = vy + dt * (-1)*gradient[1][x, y, z]
-        vz = vz + dt * (-1)*gradient[2][x, y, z] 
+        vx = vx + dt * (-1)*gradient[0][int(x), int(y), int(z)]
+        vy = vy + dt * (-1)*gradient[1][int(x), int(y), int(z)]
+        vz = vz + dt * (-1)*gradient[2][int(x), int(y), int(z)] 
         t = t + dt
         
         # Update positions at half-integer step
