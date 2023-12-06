@@ -1,7 +1,3 @@
-import particle_distribution
-import density_field
-import avgpotential_vs_radius
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fftn, ifftn
@@ -37,6 +33,19 @@ def green_function(N):
 
     return g
 
+def expand_meshgrid(grid, M):
+
+    N = grid.shape[0]
+
+    # Check if the original grid is N x N x N
+    if grid.shape != (N, N, N):
+        raise ValueError("The original grid must be a cube (N x N x N)")
+    
+    convol_grid = np.zeros((M, M, M))
+    convol_grid[:N, :N, :N] = grid
+
+    return convol_grid
+
 def solve_poisson_green(density, g):
     '''
         The function returns the potential of the density field by solving the Poisson equation using the Green's function.
@@ -57,30 +66,5 @@ def solve_poisson_green(density, g):
     phi = ifftn(phi_hat).real
     return phi
 
-# x,y,z = particle_distribution.spherically_sym_particles((0,0,0), 32**3, 2)
-# particles = np.column_stack([x,y,z])
-# density = density_field.compute_density_field(particles, 32)
 
-def expand_meshgrid(grid, M):
 
-    N = grid.shape[0]
-
-    # Check if the original grid is N x N x N
-    if grid.shape != (N, N, N):
-        raise ValueError("The original grid must be a cube (N x N x N)")
-    
-    convol_grid = np.zeros((M, M, M))
-    convol_grid[:N, :N, :N] = grid
-
-    return convol_grid
-
-# density = expand_meshgrid(density, 64)
-# g = green_function(32)
-# g = expand_meshgrid(g, 64)
-# phi = solve_poisson_green(density, g)
-# print(phi)
-# print(phi.shape)
-
-# avgpotential_vs_radius.plot_potential_vs_radius(phi)
-# plt.plot(phi)
-# plt.show()
