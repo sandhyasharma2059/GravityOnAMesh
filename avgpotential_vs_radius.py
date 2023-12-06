@@ -20,6 +20,7 @@ def plot_potential_vs_radius(phi):
             - None (plots the average potential vs. the radius)
     
     '''
+
     N = phi.shape[0]
     center = N // 2
 
@@ -32,9 +33,12 @@ def plot_potential_vs_radius(phi):
     unique_r = np.unique(r_flat)
     average_phi = np.array([phi_flat[r_flat == radius].mean() for radius in unique_r])
 
+    r = np.linspace(0.1, 10, 100)
+    # Plotting
     plt.figure(figsize=(8, 6))
     plt.plot(unique_r, average_phi, marker='o')
-    plt.plot(unique_r, 1 / unique_r, label='1/r', color='red')
+    # plt.plot(r_flat, 1 / r_flat + 300, label='1/r', color='red')
+    # plt.plot(r, 10/ r + 300, label='1/r', color='red')
     plt.xlabel('Radius (r)')
     plt.ylabel('Average Potential (phi)')
     plt.title('Average Potential vs. Radius')

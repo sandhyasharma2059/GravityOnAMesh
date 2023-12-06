@@ -165,7 +165,6 @@ def solve_poisson_fft(density_field):
 
     return phi
 
-
 def delta_source(N): 
     '''
         The function returns a delta source at the center of the grid.
@@ -278,6 +277,7 @@ def solve_poisson_green(density, g):
         Returns:
         The potential of the density field. 
     '''
+
     density_hat = fftn(density)
     g_hat = fftn(g)
 
