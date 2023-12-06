@@ -52,12 +52,12 @@ def verlet_function(x0=None, y0=None, z0=None, vx0=None, vy0=None, vz0=None, ten
         times.append(t)
         
         # Calculate the gradient of the potential at the given position
-        gradient = -np.array(np.gradient(potential_array, x, y, z))
+        gradient = np.array(np.gradient(potential_array))
         
         # Update velocities at integer step
-        vx = vx + dt * gradient[0]
-        vy = vy + dt * gradient[1]
-        vz = vz + dt * gradient[2]
+        vx = vx + dt * (-1)*gradient[0][int(x), int(y), int(z)]
+        vy = vy + dt * (-1)*gradient[1][int(x), int(y), int(z)]
+        vz = vz + dt * (-1)*gradient[2][int(x), int(y), int(z)]
         t = t + dt
         
         # Update positions at half-integer step
@@ -125,16 +125,17 @@ def verlet_function(x0=None, y0=None, z0=None, vx0=None, vy0=None, vz0=None, ten
         times.append(t)
         
         # Calculate the gradient of the potential at the given position
-        gradient = -np.array(np.gradient(potential_array, x, y, z))
+        gradient = np.array(np.gradient(potential_array))
         
         # Calculate the maximum velocity for CFL condition
         max_velocity = np.max(np.abs([vx, vy, vz]))
         
         # Update velocities at integer step with adaptive time step
         dt = min(dt, 0.1 / max_velocity)
-        vx = vx + dt * gradient[0]
-        vy = vy + dt * gradient[1]
-        vz = vz + dt * gradient[2]
+        # Update velocities at integer step
+        vx = vx + dt * (-1)*gradient[0][x, y, z]
+        vy = vy + dt * (-1)*gradient[1][x, y, z]
+        vz = vz + dt * (-1)*gradient[2][x, y, z] 
         t = t + dt
         
         # Update positions at half-integer step
@@ -144,3 +145,16 @@ def verlet_function(x0=None, y0=None, z0=None, vx0=None, vy0=None, vz0=None, ten
         t = t + 0.5 * dt
     
     return positions, times
+
+#positions, times = verlet_function(10,10,10,0,0,0,10,.001,phi)
+
+# Convert the list of arrays to a NumPy array
+#positions_array = np.array(positions)
+
+# Access the x coordinates
+#x_coordinates = positions_array[:, 0]
+
+#plt.plot(times,x_coordinates)
+#plt.ylabel("X Position")
+#plt.xlabel("Time")
+#plt.show()
