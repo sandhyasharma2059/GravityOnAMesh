@@ -283,34 +283,82 @@ def plot_potential_vs_radius(phi):
     plt.grid(True)
     plt.show()
 
-def ver(positions, velocities, density, g, time_step,grid_size=32):
+def get_acceleration(phi, positions):
+    '''
+    Parameters:
+    phi: potential of each grid (32x32x32)
+    positions: 3D coordinate of each particle, there are 32^3 particles and each has x,y,z coordinate s.t.
+               (32678, 3)
+    Returns:
+    acc: accerelation for each particle (32678, 3)
+    
+    '''
+    x_array = positions[:, 0] 
+    y_array = positions[:, 1]  
+    z_array = positions[:, 2]  
+    
+    ix = x_array.astype(int)
+    iy = y_array.astype(int)
+    iz = z_array.astype(int)
+    
+    force = np.gradient(phi)
+    print("shape of force before: ", np.array(force).shape)
+    #force = (-1)*np.transpose(force, (1, 2, 3, 0))
+    force = np.negative(force)
+    print("shape of force after: ", np.array(force).shape)
+    ax = np.array([])
+    ay = np.array([])
+    az = np.array([])
+    
+    #fx = force[:, :, :, 0]
+    #fy = force[:, :, :, 1]  
+    #fz = force[:, :, :, 2] 
+          
+    fx = force[0]
+    fy = force[1]
+    fz = force[2]
+    print("hi")
+    print(fx.shape)
+    print(fy.shape)
+    print(fz.shape)
+    
+
+    ax = np.take(fx, ix) 
+    ay = np.take(fy, iy)
+    az = np.take(fz, iz)
+    
+    return ax, ay, az
+    
+
+def ver(positions, vx, vy, vz, density, g, time_step,grid_size=32):
+    #calculate potential 
     potential = solve_poisson_green(density, g)
     potential = potential[:grid_size,:grid_size,:grid_size]
+    
+    #calculate acceleration
+    ax, ay, az = get_acceleration(potential, positions)
+    
+    #update velocities
+    new_vx = vx + 0.5*time_step*ax
+    new_vy = vy + 0.5*time_step*ay
+    new_vz = vz + 0.5*time_step*az
+   
+    #new_velocities = np.stack((new_vx, new_vy, new_vz), axis=-1)
 
-    # get values of force (3 components) on each particle at the current positions
-    force = np.gradient(potential)
-    # force = np.array(force)
-    force = np.transpose(force, (1, 2, 3, 0))
-    print(force.shape)
-    print(velocities.shape)
-
-    # calculate v(t + half step)
-    vx, vy, vz = np.split(velocities, 3, axis=3)
-    fx, fy, fz = np.split(force, 3, axis=3)
-    new_vx = vx + 0.5*time_step*fx
-    new_vy = vy + 0.5*time_step*fy
-    new_vz = vz + 0.5*time_step*fz
-
-    # new_velocities = velocities + 0.5*time_step*np.array(force)
-    new_velocities = np.concatenate([new_vx, new_vy, new_vz], axis=1)
-
-    #calculate x(t + step)
+    #update positions
     new_x = positions[:,0] + time_step*new_vx
     new_y = positions[:,1] + time_step*new_vy
     new_z = positions[:,2] + time_step*new_vz
-    new_positions = np.column_stack([new_x, new_y, new_z])
+
+    new_positions = np.stack((new_x,new_y,new_z), axis=-1)
 
     # calculate density at x(t + step)
     new_density = compute_density_field(new_positions, grid_res=grid_size)
+    
+    lower_corner_density = expand_meshgrid(new_density,64)
 
-    return new_positions, new_velocities, new_density
+    return new_positions, new_vx, new_vy, new_vz, lower_corner_density
+
+
+
+
