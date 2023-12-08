@@ -24,38 +24,79 @@ def distribute_particles(center, a, ba, ca, num_particles=32**3):
     
     return coords[:,0], coords[:,1], coords[:,2]
 
+# center = (0, 0, 0)  
+# a = 5
+# ba = 0.7
+# ca = 0.6
+# x, y, z = distribute_particles(center, a, ba, ca)
+
+# fig = plt.figure(figsize=(10, 8))
+# ax = fig.add_subplot(111, projection='3d')
+# ax.scatter(x, y, z, s=1, c='b', marker='o')
+
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# ax.set_title('3D Particle Distribution')
+
+#plt.show()
+
+# COMPUTING DENSITY FIELD
+#particles = np.column_stack([x,y,z])
+
 def compute_density_field(particles, grid_res=32):
-    min_coords = particles.min(axis=0) - 0.5
+    '''
+        The function returns the density field of the particles.
+
+        Parameters:
+        particles: the particles
+        grid_res: the resolution of the grid
+
+        Returns:
+        The density field of the particles.
+    '''
+
+    min_coords = particles.min(axis=0) - 0.5  
     max_coords = particles.max(axis=0) + 0.5
     cell_size = (max_coords - min_coords) / grid_res
-
-    x = np.linspace(min_coords[0], max_coords[0], grid_res, endpoint=False)
-    y = np.linspace(min_coords[1], max_coords[1], grid_res, endpoint=False)
-    z = np.linspace(min_coords[2], max_coords[2], grid_res, endpoint=False)
-    grid_x, grid_y, grid_z = np.meshgrid(x, y, z, indexing='ij')
-
+    
     density = np.zeros((grid_res, grid_res, grid_res))
-
+    
+    cell_particle_map = {}
+    
+    # Created map to compute computations, created a map of "relevant particles" so the distance is not computed for particles far off
     for p in particles:
         particle_min = p - 0.5
         particle_max = p + 0.5
 
-        overlap_min_x = np.maximum(grid_x, particle_min[0])
-        overlap_min_y = np.maximum(grid_y, particle_min[1])
-        overlap_min_z = np.maximum(grid_z, particle_min[2])
+        cell_min_idx = np.floor((particle_min - min_coords) / cell_size).astype(int)
+        cell_max_idx = np.ceil((particle_max - min_coords) / cell_size).astype(int)
 
-        overlap_max_x = np.minimum(grid_x + cell_size[0], particle_max[0])
-        overlap_max_y = np.minimum(grid_y + cell_size[1], particle_max[1])
-        overlap_max_z = np.minimum(grid_z + cell_size[2], particle_max[2])
-
-        overlap_size_x = np.maximum(0, overlap_max_x - overlap_min_x)
-        overlap_size_y = np.maximum(0, overlap_max_y - overlap_min_y)
-        overlap_size_z = np.maximum(0, overlap_max_z - overlap_min_z)
-
-        overlap_volume = overlap_size_x * overlap_size_y * overlap_size_z
-
-        density += overlap_volume
-
+        for i in range(cell_min_idx[0], cell_max_idx[0]):
+            for j in range(cell_min_idx[1], cell_max_idx[1]):
+                for k in range(cell_min_idx[2], cell_max_idx[2]):
+                    if (i, j, k) not in cell_particle_map:
+                        cell_particle_map[(i, j, k)] = []
+                    cell_particle_map[(i, j, k)].append(p)
+                    
+    for i in range(grid_res):
+        for j in range(grid_res):
+            for k in range(grid_res):
+                cell_min = min_coords + cell_size * np.array([i, j, k])
+                cell_max = cell_min + cell_size
+                
+                relevant_particles = cell_particle_map.get((i, j, k), [])
+                for p in relevant_particles:
+                    particle_min = p - 0.5
+                    particle_max = p + 0.5
+                    
+                    overlap_min = np.maximum(cell_min, particle_min)
+                    overlap_max = np.minimum(cell_max, particle_max)
+                    overlap_size = np.maximum(0, overlap_max - overlap_min)
+                    overlap_volume = overlap_size[0] * overlap_size[1] * overlap_size[2]
+                    
+                    density[i, j, k] += overlap_volume
+                    
     return density
 
 
@@ -180,6 +221,7 @@ def plot_potential_vs_radius(phi):
     # Plotting
     plt.figure(figsize=(8, 6))
     plt.plot(unique_r, average_phi, marker='o')
+    # plt.plot(unique_r, 1 / unique_r, label='1/r', color='red')
     plt.xlabel('Radius (r)')
     plt.ylabel('Average Potential (phi)')
     plt.title('Average Potential vs. Radius')
@@ -244,18 +286,25 @@ def solve_poisson_green(density, g):
     phi = ifftn(phi_hat).real
     return phi
 
-def expand_meshgrid(grid, M):
+def delta_source_octant(N):
+    '''
+    The function returns a delta source at the center of the bottom left octant of the grid.
 
-    N = grid.shape[0]
+    Parameters:
+    N (int): The number of grid points in each dimension.
 
-    # Check if the original grid is N x N x N
-    if grid.shape != (N, N, N):
-        raise ValueError("The original grid must be a cube (N x N x N)")
-    
-    convol_grid = np.zeros((M, M, M))
-    convol_grid[:N, :N, :N] = grid
+    Returns:
+    numpy.ndarray: A 3D grid with a delta source at the specified location.
+    '''
+    delta_source = np.zeros((N, N, N))
+    delta_source[N//4, N//4, N//4] = 100  # Place the delta source at the center of the bottom left octant
+    return delta_source
 
-    return convol_grid
+N = 64
+point_source = delta_source_octant(N)
+g = green_function(N)
+phi = solve_poisson_green(point_source, g)
+plot_potential_vs_radius(phi[:32,:32,:32]) # Limited to the 32 by 32 by 32 cube 
 
 def verlet_function(x0=None, y0=None, z0=None, vx0=None, vy0=None, vz0=None, tend=None, dt=1.e-5, potential_array=None):
     """Integrate forward in time
@@ -324,3 +373,17 @@ def verlet_function(x0=None, y0=None, z0=None, vx0=None, vy0=None, vz0=None, ten
         t = t + 0.5 * dt
     
     return positions, times
+
+
+positions, times = verlet_function(10,10,10,0,0,0,10,.001,phi)
+
+# Convert the list of arrays to a NumPy array
+positions_array = np.array(positions)
+
+# Access the x coordinates
+x_coordinates = positions_array[:, 0]
+
+plt.plot(times,x_coordinates)
+plt.ylabel("X Position")
+plt.xlabel("Time")
+plt.show()
