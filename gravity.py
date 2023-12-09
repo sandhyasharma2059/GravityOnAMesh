@@ -236,6 +236,7 @@ def solve_poisson_green(density, g):
         Parameters:
         density: the density field
         g: the Green's function
+        N: original grid size
 
         Returns:
         The potential of the density field. 
@@ -247,7 +248,7 @@ def solve_poisson_green(density, g):
     phi_hat = density_hat * g_hat
 
     phi = ifftn(phi_hat).real
-    return phi
+    return phi[:N, :N, :N]
 
 def plot_potential_vs_radius(phi):
 
@@ -282,7 +283,7 @@ def plot_potential_vs_radius(phi):
     plt.title('Average Potential vs. Radius')
     plt.grid(True)
     plt.show()
-
+"""
 def get_acceleration(phi, positions):
     '''
     Parameters:
@@ -329,36 +330,59 @@ def get_acceleration(phi, positions):
     
     return ax, ay, az
     
+"""
 
-def ver(positions, vx, vy, vz, density, g, time_step,grid_size=32):
-    #calculate potential 
+def get_acceleration(phi, positions):
+    '''
+    Calculate the acceleration on each particle given a potential field.
+
+    Parameters:
+    phi (ndarray): 3D array (32x32x32) representing the potential at each grid point.
+    positions (ndarray): 2D array of shape (n, 3) representing the 3D coordinates of n particles.
+
+    Returns:
+    ndarray: 2D array of shape (n, 3) representing the acceleration on each particle.
+    '''
+    grad = np.gradient(phi)
+    grad = [np.negative(g) for g in grad]  
+
+    acceleration = np.zeros_like(positions)
+
+    for i, pos in enumerate(positions):
+        idx = np.round(pos).astype(int)
+
+        idx = np.clip(idx, 0, phi.shape[0] - 1)
+
+        acceleration[i, 0] = grad[0][tuple(idx)]
+        acceleration[i, 1] = grad[1][tuple(idx)]
+        acceleration[i, 2] = grad[2][tuple(idx)]
+
+    return acceleration
+
+def ver(positions, vx, vy, vz, density, g, time_step, grid_size=32):
+    # Calculate potential 
     potential = solve_poisson_green(density, g)
-    potential = potential[:grid_size,:grid_size,:grid_size]
+    potential = potential[:grid_size, :grid_size, :grid_size]
     
-    #calculate acceleration
-    ax, ay, az = get_acceleration(potential, positions)
-    
-    #update velocities
-    new_vx = vx + 0.5*time_step*ax
-    new_vy = vy + 0.5*time_step*ay
-    new_vz = vz + 0.5*time_step*az
-   
-    #new_velocities = np.stack((new_vx, new_vy, new_vz), axis=-1)
+    # Calculate acceleration
+    acceleration = get_acceleration(potential, positions)
 
-    #update positions
-    new_x = positions[:,0] + time_step*new_vx
-    new_y = positions[:,1] + time_step*new_vy
-    new_z = positions[:,2] + time_step*new_vz
+    # Update velocities
+    new_vx = vx + 0.5 * time_step * acceleration[:, 0]
+    new_vy = vy + 0.5 * time_step * acceleration[:, 1]
+    new_vz = vz + 0.5 * time_step * acceleration[:, 2]
 
-    new_positions = np.stack((new_x,new_y,new_z), axis=-1)
+    # Update positions
+    new_x = positions[:, 0] + time_step * new_vx
+    new_y = positions[:, 1] + time_step * new_vy
+    new_z = positions[:, 2] + time_step * new_vz
 
-    # calculate density at x(t + step)
+    new_positions = np.stack((new_x, new_y, new_z), axis=-1)
+
+    # Calculate density at x(t + time_step)
     new_density = compute_density_field(new_positions, grid_res=grid_size)
     
-    lower_corner_density = expand_meshgrid(new_density,64)
+    # Expand meshgrid for the Green's function
+    lower_corner_density = expand_meshgrid(new_density, grid_size * 2)
 
     return new_positions, new_vx, new_vy, new_vz, lower_corner_density
-
-
-
-
