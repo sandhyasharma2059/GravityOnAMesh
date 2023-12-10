@@ -9,6 +9,8 @@ Last Modified: December 4, 2023
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fftn, ifftn
+from scipy.interpolate import RegularGridInterpolator
+
 
 def gaussian_particles(center, a, ba, ca, num_particles=32**3):
     '''
@@ -30,26 +32,27 @@ def gaussian_particles(center, a, ba, ca, num_particles=32**3):
     
     return coords[:,0], coords[:,1], coords[:,2] 
 
-def spherically_sym_particles(center, num_of_particles, r):
+def spherical_distribution(center, num_particles, radius):
     '''
-    The function returns a spherically symmetric distribution of particles of a given number. 
+    Generates a spherical distribution of particles in 3D space.
 
     Parameters:
-        - center: center of the distribution
-        - num_of_particles: number of particles in the distribution 
+        - center: Center of the sphere as a tuple (x, y, z).
+        - num_particles: Number of particles to generate.
+        - radius: Radius of the sphere.
 
     Returns:
-        - 3 1D arrays of length num_particles (x, y, z)
-          (A spherically symmetric distribution of particles of a given number)
+        Three 1D arrays representing particle positions (x, y, z).
     '''
 
-    # r = np.random.uniform(0, 1, num_of_particles)
-    theta = np.random.uniform(0, np.pi, num_of_particles)
-    phi = np.random.uniform(0, 2*np.pi, num_of_particles)
+    # Generate random inclination angles and azimuthal angles
+    inclinations = np.arccos(2 * np.random.rand(num_particles) - 1)
+    azimuths = np.random.uniform(0, 2*np.pi, num_particles)
 
-    x = center[0] + r * np.sin(theta) * np.cos(phi)
-    y = center[1] + r * np.sin(theta) * np.sin(phi)
-    z = center[2] + r * np.cos(theta)
+    # Convert inclination and azimuthal angles to Cartesian coordinates
+    x = center[0] + radius * np.sin(inclinations) * np.cos(azimuths)
+    y = center[1] + radius * np.sin(inclinations) * np.sin(azimuths)
+    z = center[2] + radius * np.cos(inclinations)
 
     return x, y, z
 
@@ -183,7 +186,7 @@ def solve_poisson_fft(density_field):
     # inverse Fourier transform to get the potential
     phi = np.fft.ifftn(phi_hat).real
 
-    return phi
+    return -phi
 
 def green_function(N):
     '''
@@ -214,7 +217,7 @@ def green_function(N):
             for k in range(N):
                 g[i, j, k] = g[min(i, N - 1 - i), min(j, N - 1 - j), min(k, N - 1 - k)]
 
-    return fftn(g)
+    return g
 
 def expand_meshgrid(grid, M):
 
@@ -229,7 +232,7 @@ def expand_meshgrid(grid, M):
 
     return convol_grid
 
-def solve_poisson_green(density, g_hat, N):
+def solve_poisson_green(density, g, N):
     '''
         The function returns the potential of the density field by solving the Poisson equation using the Green's function.
 
@@ -243,11 +246,11 @@ def solve_poisson_green(density, g_hat, N):
     '''
     
     density_hat = fftn(density)
-
+    g_hat = fftn(g)
     phi_hat = density_hat * g_hat
 
     phi = ifftn(phi_hat).real
-    return phi[:N, :N, :N]
+    return -phi[:N, :N, :N]
 
 def plot_potential_vs_radius(phi):
 
@@ -284,7 +287,8 @@ def plot_potential_vs_radius(phi):
     plt.show()
 
 
-"""def get_acceleration(phi, positions):
+"""
+def get_acceleration(phi, positions):
     '''
     Calculate the acceleration on each particle given a potential field.
 
@@ -310,38 +314,45 @@ def plot_potential_vs_radius(phi):
         acceleration[i, 2] = grad[2][tuple(idx)]
 
     return acceleration
-"""
+    """
 
-def ver(positions, vx, vy, vz, density, g_hat, time_step, grid_size=32):
+
+def ver(positions, vx, vy, vz, density, g, time_step, grid_size=32):
     # Calculate potential 
-    potential = solve_poisson_green(density, g_hat, grid_size)
+    potential = solve_poisson_green(density, g, grid_size)
     
     # Calculate acceleration
-    acceleration = get_acceleration(potential, positions)
+    acceleration_old = get_acceleration(potential, positions)
 
-    # Update velocities
-    new_vx = vx + 0.5 * time_step * acceleration[:, 0]
-    new_vy = vy + 0.5 * time_step * acceleration[:, 1]
-    new_vz = vz + 0.5 * time_step * acceleration[:, 2]
+    # Calculate the velocity
+    vx_half = vx + 0.5 * time_step * (acceleration_old[:, 0])
+    vy_half = vy + 0.5 * time_step * (acceleration_old[:, 1])
+    vz_half = vz + 0.5 * time_step * (acceleration_old[:, 2])
+
 
     # Update positions
-    new_x = positions[:, 0] + time_step * new_vx
-    new_y = positions[:, 1] + time_step * new_vy
-    new_z = positions[:, 2] + time_step * new_vz
+    new_x = positions[:, 0] + time_step * vx_half
+    new_y = positions[:, 1] + time_step * vy_half
+    new_z = positions[:, 2] + time_step * vz_half
 
     new_positions = np.stack((new_x, new_y, new_z), axis=-1)
 
     # Calculate density at x(t + time_step)
     new_density = compute_density_field(new_positions, grid_res=grid_size)
-    
-    # Expand meshgrid for the Green's function
-    lower_corner_density = expand_meshgrid(new_density, grid_size * 2)
+    new_density = expand_meshgrid(new_density, grid_size * 2)
 
-    return new_positions, new_vx, new_vy, new_vz, lower_corner_density
+    # Calculate potential at new positions
+    new_potential = solve_poisson_green(new_density, g, grid_size)
 
-"""
-import numpy as np
-from scipy.interpolate import RegularGridInterpolator
+    # Calculate acceleration at new positions
+    acceleration_new = get_acceleration(new_potential, new_positions)
+
+    # Update velocities
+    new_vx = vx_half + time_step * acceleration_new[:, 0]
+    new_vy = vy_half + time_step * acceleration_new[:, 1]
+    new_vz = vz_half + time_step * acceleration_new[:, 2]
+
+    return new_positions, new_vx, new_vy, new_vz, new_density
 
 def get_acceleration(phi, positions):
     '''
@@ -372,11 +383,11 @@ def get_acceleration(phi, positions):
         acceleration[i, 2] = interp_fz(pos)
 
     return acceleration
-"""
+
 
 from scipy.interpolate import RegularGridInterpolator
 
-def get_acceleration(phi, positions):
+'''def get_acceleration(phi, positions):
     # Get the gradient of the potential field
     grad = np.gradient(phi)
     # The gradient points in the direction of increasing potential, so it must be negated.
@@ -393,20 +404,51 @@ def get_acceleration(phi, positions):
             acceleration[i, j] = interpolators[j](pos)
 
     return acceleration
+'''
 
+def plot_trajectory(particle_positions, particle_index):
+    """
+    Plot the trajectory of a single particle given its positions at different times.
+
+    :param particle_positions: List of arrays, each array contains positions of all particles at a given time
+    :param particle_index: Index of the particle to plot the trajectory for
+    """
+    # Extract the positions of the selected particle at different times
+    x = [position[particle_index][0] for position in particle_positions]
+    y = [position[particle_index][1] for position in particle_positions]
+    z = [position[particle_index][2] for position in particle_positions]
+
+    # Create a 3D plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the trajectory
+    ax.plot(x, y, z, marker='o')
+
+    # Indicating the direction of movement
+    # Plot an arrow showing the direction of the particle's movement (from start to end)
+    ax.quiver(x[-2], y[-2], z[-2], x[-1] - x[-2], y[-1] - y[-2], z[-1] - z[-2], 
+              color='red', length=np.linalg.norm([x[-1] - x[-2], y[-1] - y[-2], z[-1] - z[-2]]),
+              arrow_length_ratio=0.3)
+
+    # Setting labels
+    ax.set_xlabel('X Position')
+    ax.set_ylabel('Y Position')
+    ax.set_zlabel('Z Position')
+    ax.set_title(f'Trajectory of Particle {particle_index + 1}')
+
+    # Show the plot
+    plt.show()
+    
 
 # creating a spherically symmetric particle distribution
-x , y, z = spherically_sym_particles((16,16,16), 32**3, 2)
-
-# computing the density field
+x, y, z = gaussian_particles((16,16,16), 2, 0.3, 0.4, 32**3)
+plot_particles(x, y, z)
 particles = np.stack((x,y,z), axis = -1)
 density_field = compute_density_field(particles, grid_res=32)
-
-# solving the Poisson equation
 density_field = expand_meshgrid(density_field, 64)
 g = green_function(64)
 phi = solve_poisson_green(density_field, g, 32)
-
 # verifying plot
 plot_potential_vs_radius(phi)
 
@@ -419,11 +461,14 @@ vz = np.zeros(shape = (N,))
 
 density = density_field
 tend = 20
-time_step = 0.1
+time_step = 0.01
 
-pos_array = []
+pos_array = [positions]
+phi_array = [phi]
 
 for t in range(tend):
-    positions, vx, vy, vz, density = ver(positions, vx, vy, vz, density, g, time_step)
+    plot_particles(positions[:,0], positions[:,1], positions[:,2])
+    positions, vx, vy, vz, density, phi = ver(positions, vx, vy, vz, density, g, time_step)
+    phi_array.append(phi.copy())
     pos_array.append(positions.copy())
 
