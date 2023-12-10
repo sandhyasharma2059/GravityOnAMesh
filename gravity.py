@@ -384,28 +384,6 @@ def get_acceleration(phi, positions):
 
     return acceleration
 
-
-from scipy.interpolate import RegularGridInterpolator
-
-'''def get_acceleration(phi, positions):
-    # Get the gradient of the potential field
-    grad = np.gradient(phi)
-    # The gradient points in the direction of increasing potential, so it must be negated.
-    grad = [-component for component in grad]
-
-    # Create interpolating functions for each component of the gradient
-    x = y = z = np.arange(phi.shape[0])  # Assuming phi is a cube
-    interpolators = [RegularGridInterpolator((x, y, z), g) for g in grad]
-
-    # Interpolate the gradient (acceleration) at each particle's position
-    acceleration = np.zeros_like(positions)
-    for i, pos in enumerate(positions):
-        for j in range(3):  # x, y, z components
-            acceleration[i, j] = interpolators[j](pos)
-
-    return acceleration
-'''
-
 def plot_trajectory(particle_positions, particle_index):
     """
     Plot the trajectory of a single particle given its positions at different times.
@@ -467,8 +445,30 @@ pos_array = [positions]
 phi_array = [phi]
 
 for t in range(tend):
-    plot_particles(positions[:,0], positions[:,1], positions[:,2])
-    positions, vx, vy, vz, density, phi = ver(positions, vx, vy, vz, density, g, time_step)
-    phi_array.append(phi.copy())
+    positions, vx, vy, vz, density = ver(positions, vx, vy, vz, density, g, time_step)
     pos_array.append(positions.copy())
 
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+
+ax.set_xlim(0, 32)
+ax.set_ylim(0, 32)
+ax.set_zlim(0, 32)
+scat = ax.scatter([], [], [], s=1, c='b', marker='o')
+
+# Animation update function
+def update(frame_number):
+    # Update the data in the scatter plot
+    scat._offsets3d = (pos_array[frame_number][:, 0], pos_array[frame_number][:, 1], pos_array[frame_number][:, 2])
+    return scat,
+
+# Create the animation object
+anim = FuncAnimation(fig, update, frames=len(pos_array), interval=200, blit=False)
+
+plt.show()
