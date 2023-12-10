@@ -11,26 +11,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # creating a spherically symmetric particle distribution
-x,y,z = gravity.spherically_sym_particles((0,0,0), 32**3, 2)
+x , y, z = gravity.spherically_sym_particles((16,16,16), 32**3, 2)
 
 # computing the density field
-# particles = np.column_stack([x,y,z])
 particles = np.stack((x,y,z), axis = -1)
-print(particles.shape)
 density_field = gravity.compute_density_field(particles, grid_res=32)
-print(density_field.shape)
 
 # solving the Poisson equation
 density_field = gravity.expand_meshgrid(density_field, 64)
 g = gravity.green_function(64)
-phi = gravity.solve_poisson_green(density_field, g)
-phi = phi[:32,:32,:32]
+phi = gravity.solve_poisson_green(density_field, g, 32)
 
-#initial conditions 
+# verifying plot
+gravity.plot_potential_vs_radius(phi)
+
+# initial conditions 
+N = len(particles)
 positions = particles
-vx = np.zeros(shape =(32768,))
-vy = np.zeros(shape =(32768,))
-vz = np.zeros(shape =(32768,))
+vx = np.zeros(shape = (N,))
+vy = np.zeros(shape = (N,))
+vz = np.zeros(shape = (N,))
 
 density = density_field
 tend = 2 
@@ -57,7 +57,7 @@ print(all_position_array)
 x_positions_first_particle = all_position_array[:, 0, 0]
 
 # Create a time array for x-axis
-time_steps = range(1, 3)  # Assuming there are 5 time steps
+time_steps = range(1, 11)  # Assuming there are 5 time steps
 
 # Plotting x position of the first particle over time
 plt.plot(time_steps, x_positions_first_particle, marker='o')
@@ -70,7 +70,7 @@ plt.show()
 positions = all_position_array
 
 # Get the number of particles
-num_particles = positions.shape[1]
+num_particles = positions.shape[0]
 
 # Initialize the figure and axis for plotting
 fig = plt.figure()
