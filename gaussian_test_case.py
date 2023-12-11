@@ -42,7 +42,7 @@ density = density_field
 tend = 10 
 time_step = 0.1
 
-pos_array = []
+pos_array = [positions]
 
 #integrating in time
 for t in range(tend):
