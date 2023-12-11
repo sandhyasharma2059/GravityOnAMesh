@@ -306,7 +306,7 @@ def get_acceleration(phi, positions):
     positions (ndarray): 2D array of shape (n, 3) representing the 3D coordinates of n particles.
 
     Returns:
-    ndarray: 2D array of shape (n, 3) representing the acceleration on each particle.
+    acceleration (ndarray): 2D array of shape (n, 3) representing the acceleration on each particle.
     '''
     grad = np.gradient(phi)
     grad = [np.negative(g) for g in grad]  
@@ -327,6 +327,22 @@ def get_acceleration(phi, positions):
 
 
 def ver(positions, vx, vy, vz, density, g, time_step, grid_size=32):
+    '''
+    This function integrates the poisson equation in time.
+
+    Parameters:
+    positions (ndarray): 2D array of shape (n, 3) representing the 3D coordinates of n particles
+    vx,vy,vz (arrays) = 1D numpy array of length N
+    density (ndarray): the density field (32x32x32 array)
+    g (ndarray): the fourier transform of the Green's function values in a 3D N x N x N grid
+    time_step (float): the time step that you will update with
+
+    Returns:
+    new_positions (ndarray): 2D array of shape (n, 3) representing the 3D coordinates of n particles
+    new_vx,new_vy,new_vz (arrays) = 1D numpy array of length N
+    new_density (ndarray): the density field (32x32x32 array)
+    '''
+    
     # Calculate potential 
     potential = solve_poisson_green(density, g, grid_size)
     
