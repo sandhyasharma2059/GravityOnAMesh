@@ -193,7 +193,7 @@ def green_function(N):
     This function returns the Green's function in a 3D grid, symmetric across the eight octants.
 
     Parameters:
-    N (int): The number of grid points in each dimension.
+    N (int): The number of grid points in each dimension. Put 64 for an initial grid of 32x32x32
 
     Returns:
     numpy.ndarray: The fourier transform of the Green's function values in a 3D N x N x N grid.
@@ -220,6 +220,15 @@ def green_function(N):
     return g
 
 def expand_meshgrid(grid, M):
+    '''
+    This function returns the potential function in a 3D grid, shifted to the correct spot to convolve with your Green's function.
+
+    Parameters:
+    N (int): The number of grid points in each dimension. Put 64 for correct convolution
+
+    Returns:
+    numpy.ndarray: The potential values in a 3D M x M x M grid.
+    '''
 
     N = grid.shape[0]
 
