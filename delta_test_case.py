@@ -1,8 +1,8 @@
 '''
-Name: spher_sym_testcase.py
+Name: delta_test_case.py
 Description: This file contains the test case for the spherically symmetric particle distribution.
 Author: Greta Goldberg, Jason Li, Sandhya Sharma
-Last Modified: December 4, 2023
+Last Modified: December 10, 2023
 
 '''
 
@@ -10,12 +10,42 @@ import gravity
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+##using old spherical distribution just to put one particle on the grid
+
+def spherically_sym_particles(center, num_of_particles, r):
+    '''
+    The function returns a spherically symmetric distribution of particles of a given number. 
+
+    Parameters:
+        - center: center of the distribution
+        - num_of_particles: number of particles in the distribution 
+
+    Returns:
+        - 3 1D arrays of length num_particles (x, y, z)
+          (A spherically symmetric distribution of particles of a given number)
+    '''
+
+    # r = np.random.uniform(0, 1, num_of_particles)
+    theta = np.random.uniform(0, np.pi, num_of_particles)
+    phi = np.random.uniform(0, 2*np.pi, num_of_particles)
+
+    x = center[0] + r * np.sin(theta) * np.cos(phi)
+    y = center[1] + r * np.sin(theta) * np.sin(phi)
+    z = center[2] + r * np.cos(theta)
+
+    return x, y, z
+
 # creating a spherically symmetric particle distribution
-x , y, z = gravity.spherical_distribution((16,16,16), 32**3, 2)
+x , y, z = spherically_sym_particles((16,16,16), 1, 0)
+
+gravity.plot_particles(x,y,z)
 
 # computing the density field
 particles = np.stack((x,y,z), axis = -1)
 density_field = gravity.compute_density_field(particles, grid_res=32)
+
+gravity.plot_2d_slice(density_field,"Density Field",axis="z",slice_index=None)
 
 # solving the Poisson equation
 density_field = gravity.expand_meshgrid(density_field, 64)
@@ -53,45 +83,3 @@ all_position_array = np.array(pos_array)
 
 print(all_position_array.shape)
 print(all_position_array)
-
-
-# ----------- PlOTTING -------------
-
-# Extract x positions of the first particle at each time step
-x_positions_first_particle = all_position_array[:, 0, 0]
-
-# Create a time array for x-axis
-time_steps = range(1, 11)  # Assuming there are 5 time steps
-
-# Plotting x position of the first particle over time
-plt.plot(time_steps, x_positions_first_particle, marker='o')
-plt.title('X Position of First Particle Over Time')
-plt.xlabel('Time Step')
-plt.ylabel('X Position')
-plt.grid(True)
-plt.show()
-
-positions = all_position_array
-
-# Get the number of particles
-num_particles = positions.shape[0]
-
-# Initialize the figure and axis for plotting
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-# Plot trajectories of all particles
-for i in range(num_particles-32600):
-    x_positions = positions[:, i, 0]
-    y_positions = positions[:, i, 1]
-    z_positions = positions[:, i, 2]
-    ax.plot(x_positions, y_positions, z_positions)
-
-# Set labels and title
-ax.set_xlabel('X Axis')
-ax.set_ylabel('Y Axis')
-ax.set_zlabel('Z Axis')
-ax.set_title('Trajectories of All Particles Over Time')
-
-# Show the plot
-plt.show()

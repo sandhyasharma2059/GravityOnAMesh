@@ -1,9 +1,9 @@
-import particle_distribution
-import plot_particles
-import representation2D
-import density_field
-import solve_poisson_equation
-import numpy as np
+from gravity import particle_distribution
+#from gravity import plot_particles
+from gravity import representation2D
+from gravity import density_field
+from gravity import solve_poisson_equation
+from gravity import numpy as np
 
 # x1,y1,z1 = particle_distribution.gaussian_particles((0,0,0), 2, 4, 5, 32**3)
 # plot_particles.plot_particles(x1,y1,z1)

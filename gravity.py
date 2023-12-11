@@ -418,7 +418,7 @@ def plot_trajectory(particle_positions, particle_index):
     # Show the plot
     plt.show()
     
-
+'''
 # creating a spherically symmetric particle distribution
 x, y, z = gaussian_particles((16,16,16), 2, 0.3, 0.4, 32**3)
 plot_particles(x, y, z)
@@ -472,3 +472,4 @@ def update(frame_number):
 anim = FuncAnimation(fig, update, frames=len(pos_array), interval=200, blit=False)
 
 plt.show()
+'''

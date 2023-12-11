@@ -6,12 +6,12 @@ Last Modified: December 4, 2023
 
 '''
 
-import gravity 
+import gravity
 import numpy as np
 import matplotlib.pyplot as plt
 
 # creating a spherically symmetric particle distribution
-x , y, z = gravity.spherical_distribution((16,16,16), 32**3, 2)
+x , y, z = gravity.gaussian_particles((16,16,16), .2, .3, .4, 32**3)
 
 # computing the density field
 particles = np.stack((x,y,z), axis = -1)
@@ -24,6 +24,8 @@ phi = gravity.solve_poisson_green(density_field, g, 32)
 
 # verifying plot
 gravity.plot_potential_vs_radius(phi)
+
+gravity.plot_2d_slice(density_field[:32,:32,:32],"Density Field",axis="z",slice_index=None)
 
 gravity.plot_2d_slice(phi, "Potential Cross Section", axis='z', slice_index=None)
 gravity.plot_2d_slice(phi, "Potential Cross Section", axis='x', slice_index=None)
