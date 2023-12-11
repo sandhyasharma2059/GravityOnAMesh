@@ -23,3 +23,6 @@ Tests
 2. varying_gaussian_test: generates potential field for varying a,b,c values in a Gaussian distribution of particles
 3. delta_test_case : generates potential field for a delta distribution
 4. gaussian_test_case: generates potential field for a gaussian distribution
+
+other dependencies:
+numpy, matplotlib, scipy
