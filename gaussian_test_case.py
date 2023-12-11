@@ -10,7 +10,7 @@ import gravity
 import numpy as np
 import matplotlib.pyplot as plt
 
-# creating a spherically symmetric particle distribution
+# creating a gaussian particle distribution
 x , y, z = gravity.gaussian_particles((16,16,16), .2, .3, .4, 32**3)
 
 # computing the density field
@@ -39,11 +39,12 @@ vy = np.zeros(shape = (N,))
 vz = np.zeros(shape = (N,))
 
 density = density_field
-tend = 2 
+tend = 10 
 time_step = 0.1
 
 pos_array = []
 
+#integrating in time
 for t in range(tend):
     positions, vx, vy, vz, density = gravity.ver(positions, vx, vy, vz, density, g, time_step)
     pos_array.append(positions.copy())
@@ -63,7 +64,7 @@ print(all_position_array)
 x_positions_first_particle = all_position_array[:, 0, 0]
 
 # Create a time array for x-axis
-time_steps = range(1, 11)  # Assuming there are 5 time steps
+time_steps = range(1, 11)  # Assuming there are 10 time steps (for N timesteps use range(1,N+1)
 
 # Plotting x position of the first particle over time
 plt.plot(time_steps, x_positions_first_particle, marker='o')
