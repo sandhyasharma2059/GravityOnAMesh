@@ -72,10 +72,12 @@ time_step = 0.1
 
 pos_array = []
 
+#integrating in time
 for t in range(tend):
     positions, vx, vy, vz, density = gravity.ver(positions, vx, vy, vz, density, g, time_step)
     pos_array.append(positions.copy())
 
+#checking the outputs
 print(positions.shape)
 print(vx.shape)
 
