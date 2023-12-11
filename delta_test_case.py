@@ -1,6 +1,6 @@
 '''
 Name: delta_test_case.py
-Description: This file contains the test case for the spherically symmetric particle distribution.
+Description: This file contains the test case for the delta source.
 Author: Greta Goldberg, Jason Li, Sandhya Sharma
 Last Modified: December 10, 2023
 
@@ -10,9 +10,7 @@ import gravity
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-##using old spherical distribution just to put one particle on the grid
-
+#using old spherical distribution just to put one particle on the grid
 def spherically_sym_particles(center, num_of_particles, r):
     '''
     The function returns a spherically symmetric distribution of particles of a given number. 
@@ -37,7 +35,7 @@ def spherically_sym_particles(center, num_of_particles, r):
     return x, y, z
 
 # creating a spherically symmetric particle distribution
-x , y, z = spherically_sym_particles((16,16,16), 1, 0)
+x, y, z = spherically_sym_particles((16,16,16), 1, 0)
 
 gravity.plot_particles(x,y,z)
 
@@ -58,30 +56,3 @@ gravity.plot_potential_vs_radius(phi)
 gravity.plot_2d_slice(phi, "Potential Cross Section", axis='z', slice_index=None)
 gravity.plot_2d_slice(phi, "Potential Cross Section", axis='x', slice_index=None)
 gravity.plot_2d_slice(phi, "Potential Cross Section", axis='y', slice_index=None)
-
-# initial conditions 
-N = len(particles)
-positions = particles
-vx = np.zeros(shape = (N,))
-vy = np.zeros(shape = (N,))
-vz = np.zeros(shape = (N,))
-
-density = density_field
-tend = 2 
-time_step = 0.1
-
-pos_array = []
-
-#integrating in time
-for t in range(tend):
-    positions, vx, vy, vz, density = gravity.ver(positions, vx, vy, vz, density, g, time_step)
-    pos_array.append(positions.copy())
-
-#checking the outputs
-print(positions.shape)
-print(vx.shape)
-
-all_position_array = np.array(pos_array)
-
-print(all_position_array.shape)
-print(all_position_array)

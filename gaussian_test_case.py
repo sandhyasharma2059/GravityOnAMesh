@@ -2,7 +2,7 @@
 Name: spher_sym_testcase.py
 Description: This file contains the test case for the spherically symmetric particle distribution.
 Author: Greta Goldberg, Jason Li, Sandhya Sharma
-Last Modified: December 4, 2023
+Last Modified: December 10, 2023
 
 '''
 
@@ -49,16 +49,10 @@ for t in range(tend):
     positions, vx, vy, vz, density = gravity.ver(positions, vx, vy, vz, density, g, time_step)
     pos_array.append(positions.copy())
 
-print(positions.shape)
-print(vx.shape)
-
 all_position_array = np.array(pos_array)
 
-print(all_position_array.shape)
-print(all_position_array)
 
-
-# ----------- PlOTTING -------------
+# ----------- PlOTTING THE TRAJECTORY -------------
 
 # Extract x positions of the first particle at each time step
 x_positions_first_particle = all_position_array[:, 0, 0]

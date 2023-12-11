@@ -2,7 +2,7 @@
 Name: gravity.py
 Description: This file contains all the functions required for the gravity simulation.
 Author: Greta Goldberg, Jason Li, Sandhya Sharma
-Last Modified: December 4, 2023
+Last Modified: December 10, 2023
 
 '''
 
@@ -45,14 +45,12 @@ def spherical_distribution(center, num_particles, radius):
         Three 1D arrays representing particle positions (x, y, z).
     '''
 
-    # Generate random inclination angles and azimuthal angles
-    inclinations = np.arccos(2 * np.random.rand(num_particles) - 1)
-    azimuths = np.random.uniform(0, 2*np.pi, num_particles)
+    phi = np.random.uniform(0, 2*np.pi, num_particles)
+    theta = np.arccos(1 - 2*np.random.uniform(0, 1, num_particles))
 
-    # Convert inclination and azimuthal angles to Cartesian coordinates
-    x = center[0] + radius * np.sin(inclinations) * np.cos(azimuths)
-    y = center[1] + radius * np.sin(inclinations) * np.sin(azimuths)
-    z = center[2] + radius * np.cos(inclinations)
+    x = center[0] + radius * np.sin(theta) * np.cos(phi)
+    y = center[1] + radius * np.sin(theta) * np.sin(phi)
+    z = center[2] + radius * np.cos(theta)
 
     return x, y, z
 
@@ -261,13 +259,14 @@ def solve_poisson_green(density, g, N):
     phi = ifftn(phi_hat).real
     return -phi[:N, :N, :N]
 
-def plot_potential_vs_radius(phi):
-
+def plot_potential_vs_radius(phi, distribution, radius):
     '''
         The function plots the average potential vs. the radius.
 
         Parameters:
             - phi: the potential (32x32x32 array)
+            - distribution: the distribution of the particles (string)
+            - radius: the radius of the distribution
 
         Returns:
             - None (plots the average potential vs. the radius)
@@ -286,12 +285,40 @@ def plot_potential_vs_radius(phi):
     unique_r = np.unique(r_flat)
     average_phi = np.array([phi_flat[r_flat == radius].mean() for radius in unique_r])
 
-    # Plotting
+    #finding the constant (equivalent to GM in the potential equation)
+    k_array = []
+
+    for i in range(len(unique_r)):
+        k_array.append(average_phi[i]*unique_r[i])
+
+    k = np.mean(np.array(k_array))
+
+    # Plotting the average potential vs. radius
     plt.figure(figsize=(8, 6))
     plt.plot(unique_r, average_phi, marker='o')
+
+    # Plotting the theoretical curve
+    num_points1 = int(len(average_phi) * 16 / np.max(unique_r))
+    const_pot = k/radius
+    x1 = np.linspace(0, 16, num_points1)
+    y1 = np.full_like(x1, const_pot)
+    plt.plot(x1, y1, 'g-', label = 'Constant Potential for r < radius')
+
+    num_points2 = len(average_phi) - num_points1
+    x2 = np.linspace(16, np.max(unique_r), num_points2)
+    y2 = np.full_like(x2, k/x2)
+    plt.plot(x2, y2, 'r-', label = 'Analytic Potential for r > radius')
+
+    #calculating the residuals
+    analytical_pot = np.concatenate((y1, y2))
+    residuals = average_phi - analytical_pot
+    res = round(np.abs(np.mean(residuals)),2)
+
     plt.xlabel('Radius (r)')
     plt.ylabel('Average Potential (phi)')
-    plt.title('Average Potential vs. Radius')
+    plt.title('Average Potential vs. Radius for' + ' ' + distribution + ' ' + 'Distribution')
+    plt.text(25, -2200, 'Residuals: ' + str(res))
+    plt.legend()
     plt.grid(True)
     plt.show()
 
